@@ -75,7 +75,7 @@ const Header = () => {
                     {navLinks.map(link => (
                          <a key={link.name} href={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">{link.name}</a>
                     ))}
-                    <a href="#" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+                    <a href="/register" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
                         Sign Up
                     </a>
                 </nav>
