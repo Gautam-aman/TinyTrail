@@ -7,17 +7,17 @@ import com.cfs.tinytrail.dto.clickEventDto;
 import com.cfs.tinytrail.entity.ClickEvent;
 import com.cfs.tinytrail.entity.UrlMapping;
 import com.cfs.tinytrail.entity.User;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,7 @@ public class UrlMappingService {
         urlMappingDto.setId(urlMapping.getId());
         urlMappingDto.setOriginalUrl(urlMapping.getOriginalUrl());
         urlMappingDto.setShortUrl(urlMapping.getShortUrl());
+        urlMappingDto.setClickCount(urlMapping.getClickCount());
         urlMappingDto.setCreatedDate(urlMapping.getCreatedDate());
         urlMappingDto.setUsername(urlMapping.getUser().getUsername());
         urlMappingDto.setCreatedDate(urlMapping.getCreatedDate());
@@ -68,22 +69,27 @@ public class UrlMappingService {
     }
 
     public List<clickEventDto> getClickEventsByDate(String shortUrl, LocalDateTime startDate, LocalDateTime endDate) {
-        UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
-        if (urlMapping == null) {
-            return null;
+
+        Optional<UrlMapping> optionalMapping = urlMappingRepository.findByShortUrl(shortUrl);
+
+
+        if (optionalMapping.isEmpty()) {
+            return Collections.emptyList();
         }
 
 
-        return clickEventRepo.findByUrlMappingAndClickDateBetween(urlMapping , startDate ,endDate).stream()
+        UrlMapping urlMapping = optionalMapping.get();
+
+
+        return clickEventRepo.findByUrlMappingAndClickDateBetween(urlMapping, startDate, endDate).stream()
                 .collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(),
                         Collectors.counting()))
-                .entrySet().stream().map(entry->{
+                .entrySet().stream().map(entry -> {
                     clickEventDto clickEventDto = new clickEventDto();
                     clickEventDto.setClickDate(entry.getKey().atStartOfDay());
                     clickEventDto.setCount(entry.getValue());
                     return clickEventDto;
                 }).collect(Collectors.toList());
-
     }
 
 
@@ -95,19 +101,35 @@ public class UrlMappingService {
 
      }
 
-    public UrlMapping getOriginalUrl( @PathVariable String shortUrl) {
-        UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
-        if (urlMapping != null){
-            urlMapping.setClickCount(urlMapping.getClickCount() + 1);
-            urlMappingRepository.save(urlMapping);
 
-            // record the clickEvent
-            ClickEvent clickEvent = new ClickEvent();
-            clickEvent.setUrlMapping(urlMapping);
-            clickEvent.setClickDate(LocalDateTime.now());
-            clickEventRepo.save(clickEvent);
+  //  private static final Logger logger = LoggerFactory.getLogger(UrlMappingService.class);
 
+    private static final Logger logger = LoggerFactory.getLogger(UrlMappingService.class);
+
+    @Transactional
+    public UrlMapping getOriginalUrl(String shortUrl) {
+
+        Optional<UrlMapping> optionalMapping = urlMappingRepository.findByShortUrl(shortUrl);
+
+
+        if (optionalMapping.isEmpty()) {
+            logger.warn("Redirect failed: No URL mapping found for '{}'", shortUrl);
+            return null;
         }
+
+
+        UrlMapping urlMapping = optionalMapping.get();
+
+
+        urlMapping.setClickCount(urlMapping.getClickCount() + 1);
+
+
+        ClickEvent clickEvent = new ClickEvent();
+        clickEvent.setUrlMapping(urlMapping);
+        clickEvent.setClickDate(LocalDateTime.now());
+        clickEventRepo.save(clickEvent);
+
+
         return urlMapping;
     }
 }

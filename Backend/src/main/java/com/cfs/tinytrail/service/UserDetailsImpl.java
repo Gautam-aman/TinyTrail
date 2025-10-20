@@ -36,13 +36,13 @@ public class UserDetailsImpl implements UserDetails  {
 
     public static UserDetailsImpl build(User user ) {
         GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(user.getRole());
-            return new UserDetailsImpl(
-                    user.getId(),
-                    user.getUsername(),
-                    user.getPassword(),
-                    user.getEmail(),
-                    Collections.singletonList(grantedAuthority)
-            );
+        return new UserDetailsImpl(
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                user.getEmail(),
+                Collections.singletonList(grantedAuthority)
+        );
 
     }
 
