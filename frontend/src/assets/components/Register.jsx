@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiUser, FiMail, FiLock, FiAlertCircle } from 'react-icons/fi';
 import api from '../api/api';
 import { useStoreContext } from '../api/ ContextApi';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -33,14 +34,14 @@ const Loader = () => (
 // --- Header Component ---
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const navLinks = [ { name: 'Home', href: '#' }, { name: 'About', href: '#' } ];
+    const navLinks = [ { name: 'Home', href: '/' }, { name: 'About', href: '/about' } ];
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-sm">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                <a href="#" className="flex items-center"><Logo /><span className="text-2xl font-bold text-white ml-2">TinyTrail</span></a>
+                <a href="/" className="flex items-center"><Logo /><span className="text-2xl font-bold text-white ml-2">TinyTrail</span></a>
                 <nav className="hidden md:flex items-center space-x-8">
                     {navLinks.map(link => (<a key={link.name} href={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">{link.name}</a>))}
-                    <a href="#" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">Sign Up</a>
+                    <a href="/register" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">Sign Up</a>
                 </nav>
                 <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-indigo-400 z-50">{isOpen ? <XIcon /> : <MenuIcon />}</button>
             </div>
@@ -49,7 +50,7 @@ const Header = () => {
                 <motion.div initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }} transition={{ duration: 0.3 }} className="md:hidden absolute top-full left-0 w-full bg-slate-900 border-t border-slate-800">
                     <nav className="flex flex-col items-center space-y-4 py-8">
                          {navLinks.map(link => (<a key={link.name} href={link.href} onClick={() => setIsOpen(false)} className="text-slate-300 text-lg hover:text-indigo-400 transition-colors">{link.name}</a>))}
-                        <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all">Sign Up</a>
+                        <a href="/register" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all">Sign Up</a>
                     </nav>
                 </motion.div>
             )}
@@ -65,6 +66,7 @@ const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const {settoken} = useStoreContext();
+  const navigate = useNavigate();
 
   // New state for loading and feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -113,6 +115,8 @@ const AuthForm = () => {
                 // Handle cases where login is successful but no token is sent
                 setError("Login successful, but no token was provided.");
             }
+
+            navigate('/dashboard');
 
         } else {
         // --- SIGNUP LOGIC ---
