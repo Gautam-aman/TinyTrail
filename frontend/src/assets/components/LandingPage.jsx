@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // <-- FIXED
 import { motion, AnimatePresence } from 'framer-motion';
+import { useStoreContext } from '../api/ ContextApi';
+
+
 
 // --- SVG Icon Components ---
 const Logo = ({ className = 'h-8 w-auto' }) => (
@@ -120,6 +123,9 @@ const LandingPage = () => {
         transition: { duration: 0.6, ease: "easeOut" },
         viewport: { once: true },
     };
+
+    const { token } = useStoreContext();
+    console.log("Token from landing page: ", token);
     
     return (
         <div className="bg-slate-900 text-slate-300 font-sans antialiased">

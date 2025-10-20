@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiUser, FiMail, FiLock, FiAlertCircle } from 'react-icons/fi';
-import axios from 'axios';
 import api from '../api/api';
+import { useStoreContext } from '../api/ ContextApi';
+
+
 
 // --- Helper Icon and Loader Components ---
 const Logo = () => (
@@ -62,6 +64,7 @@ const AuthForm = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const {settoken} = useStoreContext();
 
   // New state for loading and feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -86,19 +89,32 @@ const AuthForm = () => {
 
     try {
       if (isLogin) {
-        // --- LOGIN LOGIC ---
-        const response = await api.post('/api/auth/public/login', {
-          username,
-          password,
-        });
-        console.log('Login successful:', response.data);
-        localStorage.setItem("JWT_TOKEN" , JSON.stringify(response.token));
-        console.log(response.token);
-        setSuccessMessage('Login successful! Redirecting...');
-        // Handle successful login (e.g., redirect, save token)
-        // window.location.href = '/dashboard';
+            // --- LOGIN LOGIC (FIXED) ---
+            const response = await api.post('/api/auth/public/login', {
+                username,
+                password,
+            });
 
-      } else {
+            // 1. Get the token from response.data
+            const receivedToken = response.data.token;
+            console.log('Full API Response:', response.data); // Good for debugging
+            console.log('Received Token:', receivedToken);
+
+            // 2. Safety check if the token exists
+            if (receivedToken) {
+                // 3. Update context and localStorage with the correct variable
+                settoken(receivedToken);
+                localStorage.setItem("JWT_TOKEN", JSON.stringify(receivedToken));
+
+                setSuccessMessage('Login successful! Redirecting...');
+                // You can add a redirect here after a short delay
+                // setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+            } else {
+                // Handle cases where login is successful but no token is sent
+                setError("Login successful, but no token was provided.");
+            }
+
+        } else {
         // --- SIGNUP LOGIC ---
         const response = await api.post('/api/auth/public/register', {
           username,
