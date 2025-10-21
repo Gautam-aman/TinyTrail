@@ -226,7 +226,8 @@ const AnalyticsModal = ({ shortUrl, onClose }) => {
 
         // 2. Construct API URL, including date parameters
         // Note: We use the formatApiDate helper to convert the YYYY-MM-DD string inputs to ISO format
-        let apiUrl = `${ANALYTICS_API_BASE}${shortUrl}?startDate=${formatApiDate(start)}&endDate=${formatApiDate(end)}`;
+       let apiUrl = `${ANALYTICS_API_BASE}${shortUrl}?startDate=${formatApiDate(start)}&endDate=${formatApiDate(end)}`;
+
         
         try {
             const response = await fetch(apiUrl, {
@@ -373,44 +374,45 @@ const ShortenUrlModal = ({ isOpen, onClose }) => {
     const [error, setError] = useState(null);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setLoading(true);
-        setShortUrl('');
-        let success = false;
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    setShortUrl('');
 
-        try {
-            const response = await fetch(SHORTEN_URL_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ originalUrl }),
-            });
+    try {
+        // 1. Get JWT token from localStorage
+        const token = localStorage.getItem('JWT_TOKEN')?.replace(/"/g, '');
+        if (!token) throw new Error("You must be logged in to shorten a URL.");
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to shorten URL. Please check the URL.');
-            }
+        // 2. Send POST request with Authorization header
+        const response = await fetch(SHORTEN_URL_API, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // ✅ Add this!
+            },
+            body: JSON.stringify({ originalUrl }),
+        });
 
-            const result = await response.json();
-            
-            // Construct the full URL using the short code returned by the backend
-            const fullUrl = CLIENT_BASE_URL + result.shortUrl; 
-            
-            setShortUrl(fullUrl); 
-            success = true;
-
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-            if (success) {
-               // Close the modal and indicate success after a brief delay
-               setTimeout(() => onClose(true), 1500); 
-            }
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to shorten URL.');
         }
-    };
+
+        const result = await response.json();
+        const fullUrl = CLIENT_BASE_URL + result.shortUrl;
+        setShortUrl(fullUrl);
+
+        // Close modal and refresh after a short delay
+        setTimeout(() => onClose(true), 1500);
+
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
 
     if (!isOpen) return null;
 
