@@ -161,7 +161,7 @@ const LandingPage = () => {
                                     TinyTrail streamlines the process of URL shortening, making sharing links effortless and efficient. With its user-friendly interface, TinyTrail allows you to generate concise, easy-to-share URLs in seconds.
                                 </p>
                                 <div className="flex justify-center md:justify-start gap-4">
-                                    <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+                                    <a href="/dashboard" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
                                         Manage Links
                                     </a>
                                     <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base text-indigo-400 bg-transparent border-2 border-slate-600 hover:bg-slate-800 transition-colors">

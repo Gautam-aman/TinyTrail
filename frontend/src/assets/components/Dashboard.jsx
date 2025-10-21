@@ -404,7 +404,7 @@ const ShortenUrlModal = ({ isOpen, onClose }) => {
         setShortUrl(fullUrl);
 
         // Close modal and refresh after a short delay
-        setTimeout(() => onClose(true), 1500);
+        setTimeout(() => onClose(true), 10000);
 
     } catch (err) {
         setError(err.message);
