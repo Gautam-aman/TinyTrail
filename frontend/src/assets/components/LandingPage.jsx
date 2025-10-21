@@ -1,8 +1,7 @@
-import React, { useState } from 'react'; // <-- FIXED
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreContext } from '../api/ ContextApi';
-
-
+import { Link, useNavigate } from 'react-router-dom'; // <-- IMPORT useNavigate
 
 // --- SVG Icon Components ---
 const Logo = ({ className = 'h-8 w-auto' }) => (
@@ -26,6 +25,7 @@ const XIcon = () => (
 
 // --- Data for Features ---
 const featuresData = [
+  // ... (your feature data remains the same)
   {
     title: 'Simple URL Shortening',
     description: 'Experience the ease of creating short, memorable URLs in just a few clicks. Our intuitive interface and quick setup process.',
@@ -55,15 +55,25 @@ const FeatureCard = ({ title, description }) => (
     </motion.div>
 );
 
-// --- Header Component ---
+// --- Header Component (MODIFIED) ---
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
+    
+    // --- ADDED: Get token, logout function, and navigate hook ---
+    const { token, logout } = useStoreContext();
+    const navigate = useNavigate();
 
-    // --- UPDATED NAVIGATION LINKS ---
     const navLinks = [
-        { name: 'Home', href: '/' },          // Changed from '#home'
-        { name: 'About', href: '/about' },    // Changed from '#features'
+        { name: 'Home', href: '/' },
+        { name: 'About', href: '/about' },
     ];
+
+    // --- ADDED: Handle logout action ---
+    const handleLogout = () => {
+        logout(); // This should clear token from context/storage
+        setIsOpen(false); // Close mobile menu if open
+        navigate('/'); // Redirect to home page
+    };
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-sm">
@@ -76,11 +86,24 @@ const Header = () => {
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center space-x-8">
                     {navLinks.map(link => (
-                         <a key={link.name} href={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">{link.name}</a>
+                         <Link key={link.name} to={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">
+                            {link.name}
+                         </Link>
                     ))}
-                    <a href="/register" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
-                        Sign Up
-                    </a>
+                    
+                    {/* === MODIFIED: Conditional Sign Up / Sign Out Button === */}
+                    {token ? (
+                        <button
+                            onClick={handleLogout}
+                            className="py-2 px-5 rounded-lg font-semibold text-base bg-red-600 text-white shadow-lg hover:bg-red-700 transition-all transform hover:-translate-y-0.5"
+                        >
+                            Sign Out
+                        </button>
+                    ) : (
+                        <Link to="/register" className="py-2 px-5 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+                            Sign Up
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Mobile Menu Button */}
@@ -101,11 +124,24 @@ const Header = () => {
                 >
                     <nav className="flex flex-col items-center space-y-4 py-8">
                          {navLinks.map(link => (
-                             <a key={link.name} href={link.href} onClick={() => setIsOpen(false)} className="text-slate-300 text-lg hover:text-indigo-400 transition-colors">{link.name}</a>
+                             <Link key={link.name} to={link.href} onClick={() => setIsOpen(false)} className="text-slate-300 text-lg hover:text-indigo-400 transition-colors">
+                                {link.name}
+                             </Link>
                         ))}
-                        <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all">
-                            Sign Up
-                        </a>
+                        
+                        {/* === MODIFIED: Conditional Sign Up / Sign Out Button (Mobile) === */}
+                        {token ? (
+                            <button
+                                onClick={handleLogout}
+                                className="py-3 px-7 rounded-lg font-semibold text-base bg-red-600 text-white shadow-lg hover:bg-red-700 transition-all"
+                            >
+                                Sign Out
+                            </button>
+                        ) : (
+                            <Link to="/register" onClick={() => setIsOpen(false)} className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all">
+                                Sign Up
+                            </Link>
+                        )}
                     </nav>
                 </motion.div>
             )}
@@ -115,7 +151,7 @@ const Header = () => {
 };
            
 
-
+// --- Landing Page Component ---
 const LandingPage = () => {
     const sectionAnimation = {
         initial: { opacity: 0, y: 50 },
@@ -124,12 +160,13 @@ const LandingPage = () => {
         viewport: { once: true },
     };
 
+    // This token is still used for the "Manage Links" button
     const { token } = useStoreContext();
     console.log("Token from landing page: ", token);
     
     return (
         <div className="bg-slate-900 text-slate-300 font-sans antialiased">
-            <Header />
+            <Header /> {/* Header will now manage its own auth state */}
 
             <main>
                 {/* --- Hero Section --- */}
@@ -161,9 +198,15 @@ const LandingPage = () => {
                                     TinyTrail streamlines the process of URL shortening, making sharing links effortless and efficient. With its user-friendly interface, TinyTrail allows you to generate concise, easy-to-share URLs in seconds.
                                 </p>
                                 <div className="flex justify-center md:justify-start gap-4">
-                                    <a href="/dashboard" className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+                                    
+                                    {/* This link logic remains correct */}
+                                    <Link 
+                                        to={token ? "/dashboard" : "/register"} 
+                                        className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5"
+                                    >
                                         Manage Links
-                                    </a>
+                                    </Link>
+                                    
                                     <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base text-indigo-400 bg-transparent border-2 border-slate-600 hover:bg-slate-800 transition-colors">
                                         Create Short Link
                                     </a>
