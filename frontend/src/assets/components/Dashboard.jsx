@@ -9,6 +9,8 @@ const XIcon = () => (<svg className="w-6 h-6" fill="none" stroke="currentColor" 
 const Logo = () => (<span className="text-indigo-400 text-3xl">🔗</span>); 
 const CopyIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2M8 5h8M8 5a2 2 0 00-2 2h12a2 2 0 00-2-2"></path></svg>);
 const ClicksIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>);
+const ChartBarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6"></path></svg>);
+
 
 // --- THEME COLORS ---
 const THEME = {
@@ -22,14 +24,35 @@ const THEME = {
 // --- API Endpoints ---
 const SHORTEN_URL_API = 'http://localhost:8080/api/urls/shorten';
 const MY_URLS_API = 'http://localhost:8080/api/urls/myurls';
-const CLIENT_BASE_URL = 'http://localhost:8080/'; // Frontend URL for constructing full links
+const ANALYTICS_API_BASE = 'http://localhost:8080/api/urls/analytics/';
+const CLIENT_BASE_URL = 'http://localhost:8080/'; // ✅ CORRECTED: Frontend URL
 
 
-// --- Helper Functions ---
+// --- Initial Date Setup (Fixes the TypeError) ---
+// Initialize the date objects first
 const today = new Date();
+const oneMonthAgo = new Date();
+oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+// Now format them for initial state strings
 const initialEndDate = getFormattedDate(today);
-today.setDate(1); 
-const initialStartDate = getFormattedDate(today);
+const initialStartDate = getFormattedDate(oneMonthAgo);
+
+// Helper function to format Date object into the required ISO string format: YYYY-MM-DDTHH:MM:SS
+const formatApiDate = (dateString) => {
+    if (!dateString) return '';
+    
+    // Ensure we are working with a Date object for toISOString()
+    let date = dateString instanceof Date ? dateString : new Date(dateString);
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d}T${h}:${min}:${s}`;
+};
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return 'N/A';
@@ -104,14 +127,8 @@ const Header = () => {
 // =======================================================
 // URL Card Component
 // =======================================================
-// =======================================================
-// URL Card Component (FIXED for Null Clicks)
-// =======================================================
-// =======================================================
-// URL Card Component (Final Robust Version)
-// =======================================================
-const UrlCard = ({ url, theme }) => {
-    // Backend should return the full URL, but as a safeguard, construct it if needed
+const UrlCard = ({ url, theme, onAnalyticsClick }) => {
+    // Construct full URL using the correct client base URL
     const displayShortUrl = url.shortUrl.startsWith('http') ? url.shortUrl : CLIENT_BASE_URL + url.shortUrl;
 
     const handleCopy = () => {
@@ -157,13 +174,24 @@ const UrlCard = ({ url, theme }) => {
                 </button>
             </div>
 
-            <div className="flex items-center text-lg font-semibold text-white">
-                <ClicksIcon />
-                <span className="ml-2 text-2xl" style={{ color: theme.ACCENT }}>
-                    {/* CRITICAL FIX: Ensure clickCount is treated as a number, defaulting to 0 */}
-                    {Number(url.clickCount || 0).toLocaleString()} 
-                </span>
-                <span className="ml-2 text-neutral-400 text-sm">CLICKS</span>
+            <div className="flex justify-between items-center text-lg font-semibold text-white">
+                <div className="flex items-center">
+                    <ClicksIcon />
+                    <span className="ml-2 text-2xl" style={{ color: theme.ACCENT }}>
+                        {/* Ensure clickCount is treated as a number, defaulting to 0 */}
+                        {Number(url.clickCount || 0).toLocaleString()} 
+                    </span>
+                    <span className="ml-2 text-neutral-400 text-sm">CLICKS</span>
+                </div>
+                
+                {/* NEW ANALYTICS BUTTON */}
+                <button 
+                    onClick={() => onAnalyticsClick(url.shortUrl)}
+                    className="py-1 px-3 text-sm rounded-full bg-indigo-500 text-white hover:bg-indigo-600 transition flex items-center"
+                >
+                    <ChartBarIcon />
+                    <span className="ml-1">Analytics</span>
+                </button>
             </div>
         </div>
     );
@@ -171,7 +199,171 @@ const UrlCard = ({ url, theme }) => {
 
 
 // =======================================================
-// THE MODAL COMPONENT
+// NEW: Analytics Modal Component
+// =======================================================
+const AnalyticsModal = ({ shortUrl, onClose }) => {
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Default dates for API call (1 month ago to now)
+    const [startDate, setStartDate] = useState(initialStartDate);
+    const [endDate, setEndDate] = useState(initialEndDate);
+    const [dataRange, setDataRange] = useState({ start: initialStartDate, end: initialEndDate });
+
+    // Function to fetch analytics
+    const fetchAnalytics = useCallback(async (start, end) => {
+        setLoading(true);
+        setError(null);
+        
+        // 1. Get Token and check it immediately
+        const token = localStorage.getItem('JWT_TOKEN')?.replace(/"/g, '');
+        if (!token) { 
+            setError("Missing authentication token.");
+            setLoading(false);
+            return; 
+        }
+
+        // 2. Construct API URL, including date parameters
+        // Note: We use the formatApiDate helper to convert the YYYY-MM-DD string inputs to ISO format
+        let apiUrl = `${ANALYTICS_API_BASE}${shortUrl}?startDate=${formatApiDate(start)}&endDate=${formatApiDate(end)}`;
+        
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.status === 404) {
+                 throw new Error("Analytics data not found.");
+            }
+            if (!response.ok) {
+                 throw new Error(`Failed to fetch analytics (Status: ${response.status}). Please check your API URL format.`);
+            }
+
+            const data = await response.json();
+            setAnalyticsData(data);
+            setDataRange({ start, end });
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [shortUrl]);
+
+    useEffect(() => {
+        // Fetch default data on mount
+        fetchAnalytics(startDate, endDate);
+    }, [fetchAnalytics]);
+    
+    // Calculate total clicks
+    const totalClicks = analyticsData ? analyticsData.reduce((sum, item) => sum + item.count, 0) : 0;
+
+    const handleDateSearch = () => {
+        // Fetch data using the dates in the input fields
+        fetchAnalytics(startDate, endDate);
+    };
+
+
+    return (
+        // Modal Backdrop
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            {/* Modal Content */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()} 
+                style={{ backgroundColor: THEME.CARD_BG, color: THEME.FOREGROUND }}
+                className="w-full max-w-2xl p-6 rounded-xl border border-neutral-700 relative"
+            >
+                <h2 className="text-2xl font-semibold mb-2 text-indigo-400">Analytics for:</h2>
+                <p className="text-lg font-mono text-neutral-300 break-all mb-4">{CLIENT_BASE_URL + shortUrl}</p>
+                
+                {/* Close Button */}
+                <button 
+                    onClick={onClose} 
+                    className="absolute top-4 right-4 text-neutral-400 hover:text-white transition"
+                >
+                    <XIcon />
+                </button>
+                
+                {/* Date Controls */}
+                <div className="flex flex-wrap items-end gap-4 border-b border-neutral-700 pb-4 mb-4">
+                     {/* Input Start Date */}
+                    <div>
+                        <label className="block text-sm text-neutral-400">Start Date:</label>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} 
+                               className="bg-neutral-800 text-white p-2 rounded border border-neutral-600" />
+                    </div>
+                     {/* Input End Date */}
+                    <div>
+                        <label className="block text-sm text-neutral-400">End Date:</label>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} 
+                               className="bg-neutral-800 text-white p-2 rounded border border-neutral-600" />
+                    </div>
+                    <button 
+                        onClick={handleDateSearch} 
+                        disabled={loading}
+                        className="py-2 px-4 rounded bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
+                    >
+                        Search
+                    </button>
+                </div>
+                
+                {/* Results Display */}
+                <div className="space-y-4">
+                    {loading && <p className="text-indigo-400">Loading click data...</p>}
+                    {error && <p className="text-red-400">Error: {error}</p>}
+
+                    {!loading && !error && (
+                        <>
+                            {/* Total Clicks Card */}
+                            <div className="p-4 rounded-lg border-l-4 border-indigo-500 bg-neutral-800">
+                                <p className="text-sm text-neutral-400">Total Clicks in Range: {formatDateDisplay(dataRange.start)} to {formatDateDisplay(dataRange.end)}</p>
+                                <h3 className="text-4xl font-extrabold text-white mt-1">{totalClicks.toLocaleString()}</h3>
+                            </div>
+                            
+                            {/* Detailed List */}
+                            {analyticsData && analyticsData.length > 0 ? (
+                                <div className="max-h-60 overflow-y-auto" style={{ border: `1px solid ${THEME.BORDER}` }}>
+                                    <table className="w-full text-left text-neutral-300">
+                                        <thead className="sticky top-0" style={{ backgroundColor: THEME.CARD_BG }}>
+                                            <tr className="border-b border-neutral-700">
+                                                <th className="p-3">Date</th>
+                                                <th className="p-3">Clicks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {analyticsData.map((item, index) => (
+                                                <tr key={index} className="border-b border-neutral-800 hover:bg-neutral-700/50">
+                                                    <td className="p-3 font-mono text-sm">{formatDateDisplay(item.clickDate)}</td>
+                                                    <td className="p-3 font-semibold text-indigo-300">{item.count}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-center text-neutral-400 py-4">No clicks recorded in this period.</p>
+                            )}
+                        </>
+                    )}
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
+
+// =======================================================
+// THE MODAL COMPONENT (Shorten URL Modal)
 // =======================================================
 // Note: onClose now accepts a boolean to indicate if a URL was created
 const ShortenUrlModal = ({ isOpen, onClose }) => {
@@ -204,7 +396,6 @@ const ShortenUrlModal = ({ isOpen, onClose }) => {
             const result = await response.json();
             
             // Construct the full URL using the short code returned by the backend
-            // Assuming the backend returns just the short code (e.g., "e2Fhremr")
             const fullUrl = CLIENT_BASE_URL + result.shortUrl; 
             
             setShortUrl(fullUrl); 
@@ -236,7 +427,7 @@ const ShortenUrlModal = ({ isOpen, onClose }) => {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
                 onClick={(e) => e.stopPropagation()} 
-                style={{ backgroundColor: THEME.CARD_BG, color: THEME.FOREGROUND, borderColor: THEME.BORDER }}
+                style={{ backgroundColor: THEME.CARD_BG, color: THEME.FOREGROUND }}
                 className="w-full max-w-lg p-6 rounded-xl border-2 relative"
             >
                 <h2 className="text-2xl font-semibold mb-6 text-indigo-400">Create New Short URL</h2>
@@ -333,52 +524,55 @@ function Dashboard() {
   const [userUrls, setUserUrls] = useState([]);
   const [isUrlsLoading, setIsUrlsLoading] = useState(true);
   const [urlsError, setUrlsError] = useState(null);
+  
+  // NEW STATE: To manage the analytics modal
+  const [analyticsUrl, setAnalyticsUrl] = useState(null); // Holds the shortUrl string
 
+  // Use state variables directly (which are formatted strings)
   const { totalClicks, chartData, isLoading, error, refetch } = useTotalClicks(startDate, endDate);
 
+  // --- Utility Handlers ---
+  const handleOpenAnalytics = (shortUrl) => {
+      setAnalyticsUrl(shortUrl);
+  };
+  const handleCloseAnalytics = () => {
+      setAnalyticsUrl(null);
+  };
+
+  const handleModalClose = (refetchNeeded) => {
+      setIsModalOpen(false);
+      if (refetchNeeded === true) {
+          fetchUserUrls(); 
+      }
+  };
+
+
   // --- Data Fetching Logic for User URLs ---
-// Dashboard.jsx - inside fetchUserUrls
-// Dashboard.jsx - inside the Dashboard component function
-
-// ... (existing state definitions) ...
-// ... (existing useTotalClicks call) ...
-
-// Dashboard.jsx - inside the Dashboard component function
-
-// ... (Your existing state and component definitions) ...
-
-// Dashboard.jsx - inside the Dashboard component function
-
-const MY_URLS_API = 'http://localhost:8080/api/urls/myurls'; 
-
-// --- Data Fetching Logic for User URLs ---
-const fetchUserUrls = useCallback(async () => {
+  const fetchUserUrls = useCallback(async () => {
     setIsUrlsLoading(true);
     setUrlsError(null);
     
-    // 1. Retrieve the token using the correct key: JWT_TOKEN
-    const token = localStorage.getItem('JWT_TOKEN'); 
+    // 1. Retrieve the token and clean it
+    const token = localStorage.getItem('JWT_TOKEN')?.replace(/"/g, '');
     
-    // Check if the token exists
     if (!token) {
+        setUrlsLoading(false); 
         setUrlsError("Authentication required. Please log in.");
-        setIsUrlsLoading(false);
         return; 
     }
-
+    
     try {
       const response = await fetch(MY_URLS_API, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // 2. Include the Bearer token in the header
             'Authorization': `Bearer ${token}` 
           },
       });
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-            throw new Error("Access Denied: Your session may have expired. Please log in.");
+            throw new Error("Access Denied: Your session has expired. Please log in.");
         }
         throw new Error(`Failed to fetch user URLs (Status: ${response.status}).`);
       }
@@ -392,20 +586,11 @@ const fetchUserUrls = useCallback(async () => {
     } finally {
       setIsUrlsLoading(false);
     }
-}, []); // No need to add token dependency if it only changes on login/logout
+  }, []); 
 
-  // Fetch URLs when the component mounts
   useEffect(() => {
     fetchUserUrls();
   }, [fetchUserUrls]);
-  
-  // Custom handler to close modal and conditionally refetch
-  const handleModalClose = (refetchNeeded) => {
-      setIsModalOpen(false);
-      if (refetchNeeded === true) {
-          fetchUserUrls(); // Refetch if a new URL was created
-      }
-  };
   // ---------------------------------------------------
 
 
@@ -548,7 +733,7 @@ const fetchUserUrls = useCallback(async () => {
     padding: '20px', 
     borderRadius: '8px', 
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-    minHeight: '300px' // <-- ADD THIS LINE
+    minHeight: '300px'
 }}>
     <h3 style={{ marginBottom: '20px', color: '#a5b4fc', fontWeight: 400 }}>Click Trend by Date</h3>
     {chartData && chartData.length > 0 ? (
@@ -584,7 +769,12 @@ const fetchUserUrls = useCallback(async () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 pb-10">
             {userUrls.length > 0 ? (
                 userUrls.map(url => (
-                    <UrlCard key={url.id} url={url} theme={THEME} />
+                    <UrlCard 
+                        key={url.id} 
+                        url={url} 
+                        theme={THEME} 
+                        onAnalyticsClick={handleOpenAnalytics} // Pass the handler
+                    />
                 ))
             ) : (
                 <p className="col-span-full text-center text-lg text-neutral-400 py-8">
@@ -596,10 +786,17 @@ const fetchUserUrls = useCallback(async () => {
 
       </div>
       
-      {/* NEW MODAL INTEGRATION */}
+      {/* NEW MODAL INTEGRATION: Shorten URL Modal */}
       <AnimatePresence>
         {isModalOpen && (
              <ShortenUrlModal isOpen={isModalOpen} onClose={handleModalClose} />
+        )}
+      </AnimatePresence>
+      
+      {/* NEW MODAL INTEGRATION: Analytics Modal */}
+      <AnimatePresence>
+        {analyticsUrl && (
+             <AnalyticsModal shortUrl={analyticsUrl} onClose={handleCloseAnalytics} />
         )}
       </AnimatePresence>
       
