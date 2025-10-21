@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreContext } from '../api/ ContextApi';
-import { Link, useNavigate } from 'react-router-dom'; // <-- IMPORT useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 
 // --- SVG Icon Components ---
 const Logo = ({ className = 'h-8 w-auto' }) => (
@@ -22,10 +22,21 @@ const XIcon = () => (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
 );
 
+// --- ADDED: API Endpoints ---
+const SHORTEN_URL_API = 'http://localhost:8080/api/urls/shorten';
+const CLIENT_BASE_URL = 'http://localhost:8080/';
+
+// --- ADDED: THEME COLORS (Needed for Modal) ---
+const THEME = {
+  BACKGROUND: '#1e1e1e',
+  FOREGROUND: '#ffffff', 
+  ACCENT: '#4f46e5',     // Indigo 600
+  CARD_BG: '#2d2d2d',    
+  BORDER: '#444444',
+};
 
 // --- Data for Features ---
 const featuresData = [
-  // ... (your feature data remains the same)
   {
     title: 'Simple URL Shortening',
     description: 'Experience the ease of creating short, memorable URLs in just a few clicks. Our intuitive interface and quick setup process.',
@@ -55,11 +66,9 @@ const FeatureCard = ({ title, description }) => (
     </motion.div>
 );
 
-// --- Header Component (MODIFIED) ---
+// --- Header Component (Unchanged from your last version) ---
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
-    
-    // --- ADDED: Get token, logout function, and navigate hook ---
     const { token, logout } = useStoreContext();
     const navigate = useNavigate();
 
@@ -68,11 +77,10 @@ const Header = () => {
         { name: 'About', href: '/about' },
     ];
 
-    // --- ADDED: Handle logout action ---
     const handleLogout = () => {
-        logout(); // This should clear token from context/storage
-        setIsOpen(false); // Close mobile menu if open
-        navigate('/'); // Redirect to home page
+        logout(); 
+        setIsOpen(false); 
+        navigate('/'); 
     };
 
     return (
@@ -83,15 +91,12 @@ const Header = () => {
                     <span className="text-2xl font-bold text-white ml-2">TinyTrail</span>
                 </div>
                 
-                {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center space-x-8">
                     {navLinks.map(link => (
                          <Link key={link.name} to={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">
                             {link.name}
                          </Link>
                     ))}
-                    
-                    {/* === MODIFIED: Conditional Sign Up / Sign Out Button === */}
                     {token ? (
                         <button
                             onClick={handleLogout}
@@ -106,13 +111,11 @@ const Header = () => {
                     )}
                 </nav>
 
-                {/* Mobile Menu Button */}
                 <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-indigo-400 z-50">
                     {isOpen ? <XIcon /> : <MenuIcon />}
                 </button>
             </div>
             
-            {/* Mobile Navigation Menu */}
             <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -128,8 +131,6 @@ const Header = () => {
                                 {link.name}
                              </Link>
                         ))}
-                        
-                        {/* === MODIFIED: Conditional Sign Up / Sign Out Button (Mobile) === */}
                         {token ? (
                             <button
                                 onClick={handleLogout}
@@ -151,6 +152,148 @@ const Header = () => {
 };
            
 
+// --- ADDED: Shorten URL Modal (Copied from Dashboard) ---
+const ShortenUrlModal = ({ isOpen, onClose }) => {
+    const [originalUrl, setOriginalUrl] = useState('');
+    const [shortUrl, setShortUrl] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    setShortUrl('');
+
+    try {
+        // 1. Get JWT token from localStorage
+        const token = localStorage.getItem('JWT_TOKEN');
+        if (!token) throw new Error("You must be logged in to shorten a URL.");
+
+        // 2. Send POST request with Authorization header
+        const response = await fetch(SHORTEN_URL_API, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ originalUrl }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to shorten URL.');
+        }
+
+        const result = await response.json();
+        const fullUrl = CLIENT_BASE_URL + result.shortUrl;
+        setShortUrl(fullUrl);
+
+        // Close modal and refresh after a short delay
+        setTimeout(() => onClose(true), 10000);
+
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+    if (!isOpen) return null;
+
+    return (
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"
+            onClick={() => onClose(false)}
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()} 
+                style={{ backgroundColor: THEME.CARD_BG, color: THEME.FOREGROUND }}
+                className="w-full max-w-lg p-6 rounded-xl border-2 relative"
+            >
+                <h2 className="text-2xl font-semibold mb-6 text-indigo-400">Create New Short URL</h2>
+                
+                <button 
+                    onClick={() => onClose(false)} 
+                    className="absolute top-4 right-4 text-neutral-400 hover:text-white transition"
+                >
+                    <XIcon />
+                </button>
+
+                {!shortUrl ? (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <label htmlFor="originalUrl" className="block text-neutral-300">
+                            Enter Long URL:
+                        </label>
+                        <input
+                            id="originalUrl"
+                            type="url"
+                            value={originalUrl}
+                            onChange={(e) => setOriginalUrl(e.target.value)}
+                            placeholder="e.g., https://www.a-very-long-url.com/page?id=123"
+                            required
+                            style={{ 
+                                backgroundColor: THEME.BACKGROUND, 
+                                color: THEME.FOREGROUND,
+                                border: `1px solid ${THEME.BORDER}`
+                            }}
+                            className="w-full p-3 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        />
+                        
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{ backgroundColor: THEME.ACCENT, color: THEME.FOREGROUND }}
+                            className="w-full py-3 rounded-md font-bold hover:bg-indigo-700 transition disabled:opacity-50"
+                        >
+                            {loading ? 'Shortening...' : 'Shorten URL'}
+                        </button>
+
+                        {error && (
+                            <p className="text-red-400 text-sm mt-3">{error}</p>
+                        )}
+                    </form>
+                ) : (
+                    <div className="mt-4 p-4 bg-green-900/40 border border-green-700 rounded-md">
+                        <p className="text-green-300 font-semibold mb-2">✅ URL Shortened Successfully!</p>
+                        <p className="text-sm text-neutral-300">Original URL:</p>
+                        <p className="text-xs break-all mb-4">{originalUrl}</p>
+                        
+                        <p className="text-sm text-neutral-300">Short URL:</p>
+                        <div className="flex items-center space-x-2">
+                            <input 
+                                type="text" 
+                                readOnly 
+                                value={shortUrl} 
+                                style={{ backgroundColor: THEME.BACKGROUND }}
+                                className="w-full p-2 rounded-md text-indigo-300 font-mono break-all"
+                            />
+                            <button 
+                                onClick={() => navigator.clipboard.writeText(shortUrl)}
+                                className="bg-indigo-500 text-white p-2 rounded-md text-sm hover:bg-indigo-600"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                        <button 
+                            onClick={() => onClose(false)} 
+                            style={{ backgroundColor: THEME.CARD_BG }}
+                            className="w-full py-2 mt-4 rounded-md text-neutral-300 hover:text-white border border-neutral-600"
+                        >
+                            Close
+                        </button>
+                    </div>
+                )}
+            </motion.div>
+        </div>
+    );
+}; 
+
+
 // --- Landing Page Component ---
 const LandingPage = () => {
     const sectionAnimation = {
@@ -160,13 +303,24 @@ const LandingPage = () => {
         viewport: { once: true },
     };
 
-    // This token is still used for the "Manage Links" button
     const { token } = useStoreContext();
-    console.log("Token from landing page: ", token);
+    
+    // --- ADDED: Modal state and handlers ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // refetchNeeded is part of the modal's original callback, but we don't
+    // need to do anything with it here, so we just close the modal.
+    const handleModalClose = (refetchNeeded) => {
+        setIsModalOpen(false);
+    };
+    
+    const handleOpenModal = () => {
+        setIsModalOpen(true);
+    };
     
     return (
         <div className="bg-slate-900 text-slate-300 font-sans antialiased">
-            <Header /> {/* Header will now manage its own auth state */}
+            <Header /> 
 
             <main>
                 {/* --- Hero Section --- */}
@@ -199,7 +353,6 @@ const LandingPage = () => {
                                 </p>
                                 <div className="flex justify-center md:justify-start gap-4">
                                     
-                                    {/* This link logic remains correct */}
                                     <Link 
                                         to={token ? "/dashboard" : "/register"} 
                                         className="py-3 px-7 rounded-lg font-semibold text-base bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5"
@@ -207,9 +360,22 @@ const LandingPage = () => {
                                         Manage Links
                                     </Link>
                                     
-                                    <a href="#" className="py-3 px-7 rounded-lg font-semibold text-base text-indigo-400 bg-transparent border-2 border-slate-600 hover:bg-slate-800 transition-colors">
-                                        Create Short Link
-                                    </a>
+                                    {/* === MODIFIED: Conditional Button/Link === */}
+                                    {token ? (
+                                        <button
+                                            onClick={handleOpenModal}
+                                            className="py-3 px-7 rounded-lg font-semibold text-base text-indigo-400 bg-transparent border-2 border-slate-600 hover:bg-slate-800 transition-colors"
+                                        >
+                                            Create Short Link
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            to="/register"
+                                            className="py-3 px-7 rounded-lg font-semibold text-base text-indigo-400 bg-transparent border-2 border-slate-600 hover:bg-slate-800 transition-colors"
+                                        >
+                                            Create Short Link
+                                        </Link>
+                                    )}
                                 </div>
                             </motion.div>
                         </div>
@@ -259,6 +425,13 @@ const LandingPage = () => {
                     </div>
                 </div>
             </footer>
+            
+            {/* --- ADDED: Modal Integration --- */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <ShortenUrlModal isOpen={isModalOpen} onClose={handleModalClose} />
+                )}
+            </AnimatePresence>
         </div>
     )
 }
