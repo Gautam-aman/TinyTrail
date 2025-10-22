@@ -53,7 +53,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Log error, but do NOT block the filter chain
             logger.error("JWT processing failed: " + e.getMessage());
         }
 

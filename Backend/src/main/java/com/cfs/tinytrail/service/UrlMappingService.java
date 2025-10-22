@@ -29,16 +29,48 @@ public class UrlMappingService {
     @Autowired
     private ClickEventRepo clickEventRepo;
 
+    @Transactional
     public UrlMappingDto createShortUr(String originalUrl, User user) {
-        String shortUrl = generateShortUrl(originalUrl);
+        if (originalUrl == null || originalUrl.isBlank()) {
+            throw new IllegalArgumentException("Original URL cannot be null or empty");
+        }
+
+
+        if (user != null) {
+            logger.info("Creating short URL for user: {}", user.getUsername());
+        } else {
+            logger.warn("Creating short URL for anonymous user");
+        }
+
+
+        String shortUrl;
+        int attempts = 0;
+        do {
+            if (attempts >= 10) {
+                throw new IllegalStateException("Unable to generate unique short URL after 10 attempts");
+            }
+            shortUrl = generateShortUrl(originalUrl);
+            attempts++;
+        } while (urlMappingRepository.findByShortUrl(shortUrl).isPresent());
+
+        logger.info("Generated short URL: {}", shortUrl);
+
+
         UrlMapping urlMapping = new UrlMapping();
+        urlMapping.setOriginalUrl(originalUrl);
         urlMapping.setShortUrl(shortUrl);
         urlMapping.setUser(user);
-        urlMapping.setOriginalUrl(originalUrl);
         urlMapping.setCreatedDate(LocalDateTime.now());
-        urlMappingRepository.save(urlMapping);
+        urlMapping.setClickCount(0);
+
+
+        urlMappingRepository.saveAndFlush(urlMapping);
+        logger.info("Saved UrlMapping with ID: {}", urlMapping.getId());
+
+
         return changeToDto(urlMapping);
     }
+
 
     private UrlMappingDto changeToDto(UrlMapping urlMapping) {
         UrlMappingDto urlMappingDto = new UrlMappingDto();
@@ -47,7 +79,12 @@ public class UrlMappingService {
         urlMappingDto.setShortUrl(urlMapping.getShortUrl());
         urlMappingDto.setClickCount(urlMapping.getClickCount());
         urlMappingDto.setCreatedDate(urlMapping.getCreatedDate());
-        urlMappingDto.setUsername(urlMapping.getUser().getUsername());
+        if (urlMapping.getUser() != null) {
+            urlMappingDto.setUsername(urlMapping.getUser().getUsername());
+        } else {
+
+            urlMappingDto.setUsername(null);
+        }
         urlMappingDto.setCreatedDate(urlMapping.getCreatedDate());
         return urlMappingDto;
     }
@@ -69,27 +106,23 @@ public class UrlMappingService {
     }
 
     public List<clickEventDto> getClickEventsByDate(String shortUrl, LocalDateTime startDate, LocalDateTime endDate) {
-
         Optional<UrlMapping> optionalMapping = urlMappingRepository.findByShortUrl(shortUrl);
-
-
-        if (optionalMapping.isEmpty()) {
-            return Collections.emptyList();
-        }
-
+        if (optionalMapping.isEmpty()) return Collections.emptyList();
 
         UrlMapping urlMapping = optionalMapping.get();
 
-
-        return clickEventRepo.findByUrlMappingAndClickDateBetween(urlMapping, startDate, endDate).stream()
-                .collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(),
-                        Collectors.counting()))
-                .entrySet().stream().map(entry -> {
-                    clickEventDto clickEventDto = new clickEventDto();
-                    clickEventDto.setClickDate(entry.getKey().atStartOfDay());
-                    clickEventDto.setCount(entry.getValue());
-                    return clickEventDto;
-                }).collect(Collectors.toList());
+        return clickEventRepo.findByUrlMappingAndClickDateBetween(urlMapping, startDate, endDate)
+                .stream()
+                .collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(), TreeMap::new, Collectors.counting()))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    clickEventDto dto = new clickEventDto();
+                    dto.setClickDate(entry.getKey().atStartOfDay());
+                    dto.setCount(entry.getValue());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
 
@@ -123,11 +156,12 @@ public class UrlMappingService {
 
         urlMapping.setClickCount(urlMapping.getClickCount() + 1);
 
+        urlMappingRepository.saveAndFlush(urlMapping);
 
         ClickEvent clickEvent = new ClickEvent();
         clickEvent.setUrlMapping(urlMapping);
         clickEvent.setClickDate(LocalDateTime.now());
-        clickEventRepo.save(clickEvent);
+        clickEventRepo.saveAndFlush(clickEvent);
 
 
         return urlMapping;

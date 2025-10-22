@@ -2,6 +2,10 @@ package com.cfs.tinytrail.security;
 
 import com.cfs.tinytrail.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,12 +23,24 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 @Configuration
-@AllArgsConstructor
 public class WebSecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
+    @Value("${FRONTEND_URL}")
+    private String frontEndUrl;
 
+
+    private final UserDetailsServiceImpl userDetailsService;
     private final JWTAuthenticationFilter jwtAuthenticationFilter;
+
+    // SOLUTION: Add this constructor
+    @Autowired
+    public WebSecurityConfig(UserDetailsServiceImpl userDetailsService,
+                             JWTAuthenticationFilter jwtAuthenticationFilter) {
+        this.userDetailsService = userDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -72,7 +88,7 @@ public class WebSecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Specify the allowed origin (your React app's URL)
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(frontEndUrl));
         // Specify the allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Specify the allowed headers

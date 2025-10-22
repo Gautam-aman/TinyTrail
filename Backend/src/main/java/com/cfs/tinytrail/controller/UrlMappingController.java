@@ -7,6 +7,7 @@ import com.cfs.tinytrail.service.UrlMappingService;
 import com.cfs.tinytrail.service.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.cglib.core.Local;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,13 @@ public class UrlMappingController {
     @PostMapping("/shorten")
     public ResponseEntity<UrlMappingDto> shortenUrl(@RequestBody Map<String , String> Request, Principal principal){
         String originalUrl = Request.get("originalUrl");
-       User user =  userService.findByUsername(principal.getName());
+        User user = null;
+        if (principal != null) {
+            String username = principal.getName();
+            user = userService.findByUsername(username);
+        }
+
+      // User user =  userService.findByUsername(principal.getName());
        UrlMappingDto urlMappingDto = urlMappingService.createShortUr(originalUrl , user);
        return ResponseEntity.ok(urlMappingDto);
 
@@ -39,18 +46,25 @@ public class UrlMappingController {
 
     @GetMapping("/myurls")
     public ResponseEntity<List<UrlMappingDto>> getMyurls(Principal principal){
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
             User user = userService.findByUsername(principal.getName());
             List<UrlMappingDto> urlsList = urlMappingService.getUrlsByUsername(user);
             return ResponseEntity.ok(urlsList);
     }
 
     @GetMapping("/analytics/{shortUrl}")
-    public ResponseEntity<List< clickEventDto>> getUrlAnalytics (@PathVariable  String shortUrl, @RequestParam("startDate") String startDate,
-                                                                 @RequestParam("endDate") String endDate){
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-        LocalDateTime StartDate = LocalDateTime.parse(startDate, formatter);
-        LocalDateTime EndDate = LocalDateTime.parse(endDate, formatter);
-        List<clickEventDto> response = urlMappingService.getClickEventsByDate(shortUrl ,StartDate , EndDate);
+    public ResponseEntity<List<clickEventDto>> getUrlAnalytics(
+            @PathVariable String shortUrl,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate) {
+
+        LocalDateTime start = LocalDateTime.parse(startDate);
+        LocalDateTime end = LocalDateTime.parse(endDate);
+
+
+        List<clickEventDto> response = urlMappingService.getClickEventsByDate(shortUrl, start, end);
         return ResponseEntity.ok(response);
     }
 
