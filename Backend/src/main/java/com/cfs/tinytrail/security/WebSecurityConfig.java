@@ -1,9 +1,6 @@
 package com.cfs.tinytrail.security;
 
 import com.cfs.tinytrail.service.UserDetailsServiceImpl;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,14 +22,13 @@ import java.util.Arrays;
 @Configuration
 public class WebSecurityConfig {
 
-    @Value("${FRONTEND_URL}")
-    private String frontEndUrl;
+    @Value("${ALLOWED_ORIGINS}")
+    private String allowedOrigins;
 
 
     private final UserDetailsServiceImpl userDetailsService;
     private final JWTAuthenticationFilter jwtAuthenticationFilter;
 
-    // SOLUTION: Add this constructor
     @Autowired
     public WebSecurityConfig(UserDetailsServiceImpl userDetailsService,
                              JWTAuthenticationFilter jwtAuthenticationFilter) {
@@ -69,16 +65,18 @@ public class WebSecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/public/**").permitAll() // Public endpoints
-                        .requestMatchers("/totalclicks").permitAll()
-                        .requestMatchers("/{shortUrl:[a-zA-Z0-9]+}").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/error",
+                                "/api/auth/public/**",
+                                "/totalclicks",
+                                "/{shortUrl:[a-zA-Z0-9]+}"
+                        ).permitAll() // Public endpoints
                         .requestMatchers("/api/urls/**").authenticated()  // JWT protected
                         .anyRequest().authenticated()
                 );
 
         http.authenticationProvider(daoAuthenticationProvider());
-
-        // Make sure JWT filter **skips public endpoints**
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -87,20 +85,16 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Specify the allowed origin (your React app's URL)
-        configuration.setAllowedOrigins(Arrays.asList(frontEndUrl));
-        // Specify the allowed HTTP methods
+
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Specify the allowed headers
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        // Allow credentials (e.g., cookies, authorization headers)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Apply this CORS configuration to all paths
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-
 }
+
