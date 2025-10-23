@@ -23,8 +23,9 @@ const XIcon = () => (
 );
 
 // --- ADDED: API Endpoints ---
-const SHORTEN_URL_API = 'http://localhost:8080/api/urls/shorten';
-const CLIENT_BASE_URL = 'http://localhost:8080/';
+const SHORTEN_URL_API = `${import.meta.env.VITE_BACKEND_URL}/api/urls/shorten`;
+const CLIENT_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
 
 // --- ADDED: THEME COLORS (Needed for Modal) ---
 const THEME = {

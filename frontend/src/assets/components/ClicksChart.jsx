@@ -8,7 +8,7 @@ function ClicksChart({ data, theme }) {
         return <p style={{color: theme.FOREGROUND}}>No click data available for this range.</p>;
     }
 
-    const chartColor = theme.ACCENT; // Now #4f46e5 (Indigo)
+    const chartColor = theme.ACCENT;
     const textColor = theme.FOREGROUND;
 
     const CustomTooltip = ({ active, payload, label }) => {
@@ -16,7 +16,7 @@ function ClicksChart({ data, theme }) {
         return (
           <div style={{ 
             backgroundColor: theme.CARD_BG, 
-            border: `1px solid ${theme.ACCENT}`, // Indigo border
+            border: `1px solid ${theme.ACCENT}`, 
             padding: '10px', 
             borderRadius: '4px',
             color: textColor 
@@ -59,7 +59,7 @@ function ClicksChart({ data, theme }) {
                     
                     <Tooltip content={<CustomTooltip />} />
                     
-                    {/* The Line: Uses the unified Indigo accent color */}
+                   
                     <Line 
                         type="monotone" 
                         dataKey="clicks" 
@@ -70,7 +70,7 @@ function ClicksChart({ data, theme }) {
                         activeDot={{ r: 8, fill: chartColor, stroke: textColor, strokeWidth: 2 }}
                     />
                     
-                    {/* Define the gradient using the chartColor variable */}
+                   
                     <defs>
                         <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor={chartColor} stopOpacity={0.8}/>

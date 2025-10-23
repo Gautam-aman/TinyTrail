@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTotalClicks, getFormattedDate } from './../../hooks/useTotalClicks';
 import ClicksChart from './ClicksChart';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom'; // <-- IMPORT Link & useNavigate
-import { useStoreContext } from '../api/ ContextApi';// <-- IMPORT CONTEXT
+import { Link, useNavigate } from 'react-router-dom'; 
+import { useStoreContext } from '../api/ ContextApi';
 
 // --- ICON DUMMIES ---
 const MenuIcon = () => (<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>);
@@ -14,30 +14,32 @@ const ClicksIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentCo
 const ChartBarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6"></path></svg>);
 
 
-// --- THEME COLORS ---
+
 const THEME = {
 BACKGROUND: '#1e1e1e',
 FOREGROUND: '#ffffff',
-ACCENT: '#4f46e5', // Indigo 600
+ACCENT: '#4f46e5', 
 CARD_BG: '#2d2d2d',
 BORDER: '#444444',
 };
 
-// --- API Endpoints ---
-const SHORTEN_URL_API = 'http://localhost:8080/api/urls/shorten';
-const MY_URLS_API = 'http://localhost:8080/api/urls/myurls';
-const ANALYTICS_API_BASE = 'http://localhost:8080/api/urls/analytics/';
-const CLIENT_BASE_URL = 'http://localhost:8080/';
+
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+const SHORTEN_URL_API = `${BASE_URL}/api/urls/shorten`;
+const MY_URLS_API = `${BASE_URL}/api/urls/myurls`;
+const ANALYTICS_API_BASE = `${BASE_URL}/api/urls/analytics/`;
+const CLIENT_BASE_URL = BASE_URL + '/';
 
 
-// --- Initial Date Setup (Unchanged) ---
+
+
 const today = new Date();
 const oneMonthAgo = new Date();
 oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 const initialEndDate = getFormattedDate(today);
 const initialStartDate = getFormattedDate(oneMonthAgo);
 
-// --- Helper Functions (Unchanged) ---
+
 const formatApiDate = (dateString) => {
 if (!dateString) return '';
 let date = dateString instanceof Date ? dateString : new Date(dateString);
@@ -60,13 +62,11 @@ return 'Invalid Date';
 };
 
 
-// =======================================================
-// THE HEADER COMPONENT (MODIFIED)
-// =======================================================
+
 const Header = () => {
 const [isOpen, setIsOpen] = useState(false);
 
-// --- ADDED: Get context and navigation ---
+
 const { token, logout } = useStoreContext();
 const navigate = useNavigate();
 
@@ -75,11 +75,11 @@ const navLinks = [
 { name: 'About', href: '/about' },
 ];
 
-// --- ADDED: Handle logout action ---
+
 const handleLogout = () => {
 logout();
 setIsOpen(false);
-navigate('/'); // Redirect to home
+navigate('/');
 };
 
 return (
@@ -90,16 +90,16 @@ return (
 <span className="text-2xl font-bold text-white ml-2">TinyTrail</span>
 </div>
 
-{/* Desktop Navigation */}
+
 <nav className="hidden md:flex items-center space-x-8">
 {navLinks.map(link => (
-// --- UPDATED to <Link> ---
+
 <Link key={link.name} to={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">
 {link.name}
 </Link>
 ))}
 
-{/* === MODIFIED: Conditional Button === */}
+
 {token ? (
 <button
 onClick={handleLogout}
@@ -114,13 +114,12 @@ Sign Up
 )}
 </nav>
 
-{/* Mobile Menu Button */}
+
 <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-indigo-400 z-50">
 {isOpen ? <XIcon /> : <MenuIcon />}
 </button>
 </div>
 
-{/* Mobile Navigation Menu */}
 <AnimatePresence>
 {isOpen && (
 <motion.div
@@ -132,13 +131,13 @@ className="md:hidden absolute top-full left-0 w-full bg-slate-900 border-t borde
 >
 <nav className="flex flex-col items-center space-y-4 py-8">
 {navLinks.map(link => (
-// --- UPDATED to <Link> ---
+
 <Link key={link.name} to={link.href} onClick={() => setIsOpen(false)} className="text-slate-300 text-lg hover:text-indigo-400 transition-colors">
 {link.name}
 </Link>
 ))}
 
-{/* === MODIFIED: Conditional Button (Mobile) === */}
+
 {token ? (
 <button
 onClick={handleLogout}
@@ -160,9 +159,7 @@ Sign Up
 };
 
 
-// =======================================================
-// URL Card Component (Unchanged)
-// =======================================================
+
 const UrlCard = ({ url, theme, onAnalyticsClick }) => {
 const displayShortUrl = url.shortUrl.startsWith('http') ? url.shortUrl : CLIENT_BASE_URL + url.shortUrl;
 
@@ -230,9 +227,7 @@ className="py-1 px-3 text-sm rounded-full bg-indigo-500 text-white hover:bg-indi
 };
 
 
-// =======================================================
-// Analytics Modal Component (MODIFIED)
-// =======================================================
+
 const AnalyticsModal = ({ shortUrl, onClose }) => {
 const [analyticsData, setAnalyticsData] = useState(null);
 const [loading, setLoading] = useState(true);
@@ -246,7 +241,7 @@ const fetchAnalytics = useCallback(async (start, end) => {
 setLoading(true);
 setError(null);
 
-// --- MODIFIED: Correct token retrieval ---
+
 const token = localStorage.getItem('JWT_TOKEN');
 if (!token) {
 setError("Missing authentication token.");
@@ -298,7 +293,7 @@ return (
 className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"
 onClick={onClose}
 >
-{/* Modal Content */}
+
 <motion.div
 initial={{ opacity: 0, scale: 0.9 }}
 animate={{ opacity: 1, scale: 1 }}
@@ -318,7 +313,7 @@ className="absolute top-4 right-4 text-neutral-400 hover:text-white transition"
 <XIcon />
 </button>
 
-{/* Date Controls */}
+
 <div className="flex flex-wrap items-end gap-4 border-b border-neutral-700 pb-4 mb-4">
 <div>
 <label className="block text-sm text-neutral-400">Start Date:</label>
@@ -339,7 +334,7 @@ Search
 </button>
 </div>
 
-{/* Results Display */}
+
 <div className="space-y-4">
 {loading && <p className="text-indigo-400">Loading click data...</p>}
 {error && <p className="text-red-400">Error: {error}</p>}
@@ -382,9 +377,6 @@ Search
 };
 
 
-// =======================================================
-// Shorten URL Modal (MODIFIED)
-// =======================================================
 const ShortenUrlModal = ({ isOpen, onClose }) => {
 const [originalUrl, setOriginalUrl] = useState('');
 const [shortUrl, setShortUrl] = useState('');
@@ -398,7 +390,7 @@ setLoading(true);
 setShortUrl('');
 
 try {
-// --- MODIFIED: Correct token retrieval ---
+
 const token = localStorage.getItem('JWT_TOKEN');
 if (!token) throw new Error("You must be logged in to shorten a URL.");
 
@@ -420,7 +412,7 @@ const result = await response.json();
 const fullUrl = CLIENT_BASE_URL + result.shortUrl;
 setShortUrl(fullUrl);
 
-setTimeout(() => onClose(true), 10000); // Close modal after 10s
+setTimeout(() => onClose(true), 10000); 
 
 } catch (err) {
 setError(err.message);
@@ -433,12 +425,12 @@ setLoading(false);
 if (!isOpen) return null;
 
 return (
-// Modal Backdrop
+
 <div
 className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"
 onClick={() => onClose(false)}
 >
-{/* Modal Content */}
+
 <motion.div
 initial={{ opacity: 0, scale: 0.9 }}
 animate={{ opacity: 1, scale: 1 }}
@@ -457,7 +449,7 @@ className="absolute top-4 right-4 text-neutral-400 hover:text-white transition"
 <XIcon />
 </button>
 
-{/* Shortening Form */}
+
 {!shortUrl ? (
 <form onSubmit={handleSubmit} className="space-y-4">
 <label htmlFor="originalUrl" className="block text-neutral-300">
@@ -529,9 +521,7 @@ Close
 };
 
 
-// =======================================================
-// THE DASHBOARD COMPONENT (Main Content - MODIFIED)
-// =======================================================
+
 function Dashboard() {
 const [startDate, setStartDate] = useState(initialStartDate);
 const [endDate, setEndDate] = useState(initialEndDate);
@@ -545,7 +535,7 @@ const [analyticsUrl, setAnalyticsUrl] = useState(null);
 
 const { totalClicks, chartData, isLoading, error, refetch } = useTotalClicks(startDate, endDate);
 
-// --- Utility Handlers ---
+
 const handleOpenAnalytics = (shortUrl) => {
 setAnalyticsUrl(shortUrl);
 };
@@ -561,12 +551,12 @@ fetchUserUrls();
 };
 
 
-// --- Data Fetching Logic for User URLs (MODIFIED) ---
+
 const fetchUserUrls = useCallback(async () => {
 setIsUrlsLoading(true);
 setUrlsError(null);
 
-// --- MODIFIED: Correct token retrieval ---
+
 const token = localStorage.getItem('JWT_TOKEN');
 
 if (!token) {
@@ -605,7 +595,7 @@ setIsUrlsLoading(false);
 useEffect(() => {
 fetchUserUrls();
 }, [fetchUserUrls]);
-// ---------------------------------------------------
+
 
 
 return (
@@ -616,12 +606,12 @@ minHeight: '100vh',
 fontFamily: 'Roboto, sans-serif'
 }}>
 
-<Header /> {/* <-- This Header component is now auth-aware */}
+<Header /> 
 
-{/* Main content container with padding */}
+
 <div className="pt-20 px-4 md:px-8">
 
-{/* Title and NEW BUTTON added here */}
+
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${THEME.ACCENT}`, paddingBottom: '10px', marginBottom: '20px' }}>
 <h1 style={{ fontWeight: 300, margin: 0 }}>
 TinyTrail Clicks Dashboard
@@ -629,7 +619,7 @@ TinyTrail Clicks Dashboard
 <button
 onClick={() => setIsModalOpen(true)}
 style={{
-backgroundColor: '#8b5cf6', // A different, bright purple
+backgroundColor: '#8b5cf6',
 color: THEME.FOREGROUND,
 padding: '10px 20px',
 borderRadius: '6px',
@@ -645,7 +635,7 @@ Create New Short URL
 </button>
 </div>
 
-{/* Date Controls & Refresh */}
+
 <div style={{
 marginBottom: '30px',
 display: 'flex',
@@ -698,7 +688,7 @@ Refresh Data
 </button>
 </div>
 
-{/* Loading, Error, and Success States for Clicks Chart */}
+
 {isLoading && (
 <p style={{ color: THEME.ACCENT }}>📈 Loading Click Data...</p>
 )}
@@ -716,10 +706,10 @@ borderRadius: '8px'
 </div>
 )}
 
-{/* Clicks Chart/Total Card (Only shown if clicks data is loaded) */}
+
 {!isLoading && !error && (
 <>
-{/* Grand Total Card */}
+
 <div style={{
 marginBottom: '40px',
 borderLeft: `5px solid ${THEME.ACCENT}`,
@@ -738,7 +728,7 @@ Range: {formatDateDisplay(startDate)} to {formatDateDisplay(endDate)}
 <p style={{ margin: 0, fontSize: '1em', color: '#aaaaaa' }}>TOTAL CLICKS</p>
 </div>
 
-{/* Chart Integration */}
+
 <div style={{
 marginTop: '40px',
 backgroundColor: THEME.CARD_BG,
@@ -757,7 +747,7 @@ minHeight: '300px'
 </>
 )}
 
-{/* User URL Listing Section */}
+
 <h2 style={{ color: THEME.ACCENT, fontSize: '1.5em', fontWeight: 500, marginTop: '50px', borderBottom: `1px solid ${THEME.BORDER}`, paddingBottom: '10px' }}>
 My Shortened URLs
 </h2>
@@ -796,7 +786,7 @@ You haven't shortened any URLs yet.
 
 </div>
 
-{/* Modal Integrations (Unchanged) */}
+
 <AnimatePresence>
 {isModalOpen && (
 <ShortenUrlModal isOpen={isModalOpen} onClose={handleModalClose} />

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from 'react-router-dom'; // <-- IMPORT Link & useNavigate
-import { useStoreContext } from "../api/ ContextApi"; // <-- IMPORT CONTEXT
+import { Link, useNavigate } from 'react-router-dom'; 
+import { useStoreContext } from "../api/ ContextApi";
 
-// --- SVG Icon Components ---
+
 const Logo = ({ className = 'h-8 w-auto' }) => (
   <svg className={className} viewBox="0 0 44 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M3 12H12C15.3137 12 18 9.31371 18 6V6" stroke="#818cf8" strokeWidth="5" strokeLinecap="round"/>
@@ -20,16 +20,16 @@ const XIcon = () => (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
 );
 
-// --- Header Component (MODIFIED) ---
+
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const navLinks = [ { name: 'Home', href: '/' }, { name: 'About', href: '/about' } ];
 
-    // --- ADDED: Context and Navigation hooks ---
+
     const { token, logout } = useStoreContext();
     const navigate = useNavigate();
 
-    // --- ADDED: Logout handler ---
+
     const handleLogout = () => {
         logout();
         setIsOpen(false);
@@ -39,20 +39,20 @@ const Header = () => {
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-sm">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                {/* --- UPDATED to <Link> --- */}
+         
                 <Link to="/" className="flex items-center">
                     <Logo />
                     <span className="text-2xl font-bold text-white ml-2">TinyTrail</span>
                 </Link>
                 <nav className="hidden md:flex items-center space-x-8">
                     {navLinks.map(link => (
-                         // --- UPDATED to <Link> ---
+                       
                          <Link key={link.name} to={link.href} className="text-slate-300 hover:text-indigo-400 transition-colors">
                             {link.name}
                          </Link>
                     ))}
                     
-                    {/* --- ADDED: Conditional Auth Button --- */}
+
                     {token ? (
                         <button
                             onClick={handleLogout}
@@ -81,13 +81,13 @@ const Header = () => {
                 >
                     <nav className="flex flex-col items-center space-y-4 py-8">
                          {navLinks.map(link => (
-                             // --- UPDATED to <Link> ---
+                      
                              <Link key={link.name} to={link.href} onClick={() => setIsOpen(false)} className="text-slate-300 text-lg hover:text-indigo-400 transition-colors">
                                 {link.name}
                              </Link>
                         ))}
 
-                        {/* --- ADDED: Conditional Auth Button (Mobile) --- */}
+
                         {token ? (
                             <button
                                 onClick={handleLogout}
@@ -108,7 +108,7 @@ const Header = () => {
     );
 };
 
-// --- (Rest of the file is unchanged) ---
+
 
 const features = [
   { title: "Instant Shortening", desc: "Shorten long URLs instantly." },
@@ -151,7 +151,7 @@ const CanvasParticles = () => {
 };
 
 
-// --- About Page Component ---
+
 const About = () => {
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-black text-white overflow-x-hidden">

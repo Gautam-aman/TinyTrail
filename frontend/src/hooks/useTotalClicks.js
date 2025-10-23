@@ -1,18 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../assets/api/BackendApiToken';
 
-// Helper function to get the current date in the YYYY-MM-DD format
 const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
-/**
- * Custom hook to fetch the total click count data for a given date range.
- * @param {string} startDate - The start date for the API query (YYYY-MM-DD format).
- * @param {string} endDate - The end date for the API query (YYYY-MM-DD format).
+/** 
+ 
+  @param {string} startDate
+  @param {string} endDate 
  */
 export function useTotalClicks(startDate, endDate) {
-  // 1. STATE DEFINITIONS
-  const [totalClicks, setTotalClicks] = useState(null); // Grand total number
-  const [chartData, setChartData] = useState([]);       // Array of objects for the chart
+  
+  const [totalClicks, setTotalClicks] = useState(null); 
+  const [chartData, setChartData] = useState([]);       
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,9 +38,7 @@ export function useTotalClicks(startDate, endDate) {
       let newChartData = [];
       let grandTotal = 0;
 
-      // 2. DATA TRANSFORMATION LOGIC
-      // Input: {"2025-10-20": 156, "2025-10-21": 201}
-      // Output: [{date: "2025-10-20", clicks: 156}, {date: "2025-10-21", clicks: 201}]
+      
       if (typeof responseData === 'object' && responseData !== null) {
           newChartData = Object.keys(responseData)
               .map(dateKey => {
@@ -52,7 +49,7 @@ export function useTotalClicks(startDate, endDate) {
                       clicks: clickCount
                   };
               })
-              // Sort data chronologically for the chart
+            
               .sort((a, b) => new Date(a.date) - new Date(b.date));
       } 
       
@@ -78,7 +75,7 @@ export function useTotalClicks(startDate, endDate) {
     fetchTotalClicks();
   }, [fetchTotalClicks]); 
 
-  // 3. COMPLETE RETURN OBJECT
+ 
   return { totalClicks, chartData, isLoading, error, refetch: fetchTotalClicks };
 }
 
