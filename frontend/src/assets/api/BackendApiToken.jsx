@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
+  baseURL: API_BASE_URL,
 });
 
 
@@ -19,8 +20,8 @@ api.interceptors.request.use(
         if (typeof parsed === 'string' && parsed.length > 0) {
           token = parsed;
         }
-      } catch (e) {
-      
+      } catch {
+        token = tokenString;
       }
       
      

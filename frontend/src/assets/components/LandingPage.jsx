@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreContext } from '../api/ ContextApi';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_BASE_URL, buildApiUrl } from '../api/config';
 
 // --- SVG Icon Components ---
 const Logo = ({ className = 'h-8 w-auto' }) => (
@@ -23,8 +24,8 @@ const XIcon = () => (
 );
 
 // --- ADDED: API Endpoints ---
-const SHORTEN_URL_API = `${import.meta.env.VITE_BACKEND_URL}/api/urls/shorten`;
-const CLIENT_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+const SHORTEN_URL_API = buildApiUrl('/api/urls/shorten');
+const CLIENT_BASE_URL = API_BASE_URL;
 
 
 // --- ADDED: THEME COLORS (Needed for Modal) ---
@@ -311,7 +312,7 @@ const LandingPage = () => {
     
     // refetchNeeded is part of the modal's original callback, but we don't
     // need to do anything with it here, so we just close the modal.
-    const handleModalClose = (refetchNeeded) => {
+    const handleModalClose = () => {
         setIsModalOpen(false);
     };
     

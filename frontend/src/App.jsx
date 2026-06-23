@@ -1,6 +1,6 @@
 import './App.css'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import LandingPage from './assets/components/landingPage'
+import LandingPage from './assets/components/LandingPage'
 import About from './assets/components/About'
 import Register from './assets/components/Register'
 import Dashboard from './assets/components/Dashboard'

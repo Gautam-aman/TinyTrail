@@ -4,6 +4,8 @@ import ClicksChart from './ClicksChart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom'; 
 import { useStoreContext } from '../api/ ContextApi';
+import api from '../api/BackendApiToken';
+import { API_BASE_URL, buildApiUrl } from '../api/config';
 
 // --- ICON DUMMIES ---
 const MenuIcon = () => (<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>);
@@ -24,11 +26,9 @@ BORDER: '#444444',
 };
 
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
-const SHORTEN_URL_API = `${BASE_URL}/api/urls/shorten`;
-const MY_URLS_API = `${BASE_URL}/api/urls/myurls`;
-const ANALYTICS_API_BASE = `${BASE_URL}/api/urls/analytics/`;
-const CLIENT_BASE_URL = BASE_URL + '/';
+const SHORTEN_URL_API = buildApiUrl('/api/urls/shorten');
+const ANALYTICS_API_BASE = buildApiUrl('/api/urls/analytics/');
+const CLIENT_BASE_URL = `${API_BASE_URL}/`;
 
 
 
@@ -56,7 +56,7 @@ const formatDateDisplay = (dateString) => {
 if (!dateString) return 'N/A';
 try {
 return new Date(dateString).toLocaleDateString();
-} catch (e) {
+} catch {
 return 'Invalid Date';
 }
 };
@@ -278,7 +278,7 @@ setLoading(false);
 
 useEffect(() => {
 fetchAnalytics(startDate, endDate);
-}, [fetchAnalytics]);
+}, [fetchAnalytics, startDate, endDate]);
 
 const totalClicks = analyticsData ? analyticsData.reduce((sum, item) => sum + item.count, 0) : 0;
 
@@ -560,32 +560,21 @@ setUrlsError(null);
 const token = localStorage.getItem('JWT_TOKEN');
 
 if (!token) {
-setUrlsLoading(false);
+setIsUrlsLoading(false);
 setUrlsError("Authentication required. Please log in.");
 return;
 }
 
 try {
-const response = await fetch(MY_URLS_API, {
-method: 'GET',
-headers: {
-'Content-Type': 'application/json',
-'Authorization': `Bearer ${token}`
-},
-});
-
-if (!response.ok) {
-if (response.status === 401 || response.status === 403) {
-throw new Error("Access Denied: Your session has expired. Please log in.");
-}
-throw new Error(`Failed to fetch user URLs (Status: ${response.status}).`);
-}
-
-const data = await response.json();
-setUserUrls(data);
+const response = await api.get('/api/urls/myurls');
+setUserUrls(response.data);
 
 } catch (err) {
-setUrlsError(err.message);
+if (err.response?.status === 401 || err.response?.status === 403) {
+setUrlsError("Access Denied: Your session has expired. Please log in.");
+} else {
+setUrlsError(err.response?.data?.message || err.message || "Failed to fetch user URLs.");
+}
 setUserUrls([]);
 } finally {
 setIsUrlsLoading(false);
